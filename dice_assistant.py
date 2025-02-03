@@ -1,91 +1,94 @@
 import base64
 import os
-
-import streamlit as st
 from dotenv import load_dotenv
+import streamlit as st
 from openai import OpenAI
-from openai.types.beta.assistant_stream_event import (ThreadMessageCreated,
-                                                      ThreadMessageDelta,
-                                                      ThreadRunStepCompleted,
-                                                      ThreadRunStepCreated,
-                                                      ThreadRunStepDelta)
-from openai.types.beta.threads.runs.code_interpreter_tool_call import (
-    CodeInterpreterOutputImage, CodeInterpreterOutputLogs)
-from openai.types.beta.threads.runs.tool_calls_step_details import \
-    ToolCallsStepDetails
+from openai.types.beta.assistant_stream_event import (
+    ThreadRunStepCreated,
+    ThreadRunStepDelta,
+    ThreadRunStepCompleted,
+    ThreadMessageCreated,
+    ThreadMessageDelta,
+)
 from openai.types.beta.threads.text_delta_block import TextDeltaBlock
+from openai.types.beta.threads.runs.tool_calls_step_details import ToolCallsStepDetails
+from openai.types.beta.threads.runs.code_interpreter_tool_call import (
+    CodeInterpreterOutputImage,
+    CodeInterpreterOutputLogs,
+)
 
 # Set page config
-st.set_page_config(page_title="DICE", layout='wide')
+st.set_page_config(page_title="DICE", layout="wide")
 
 # Load environment variables
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ASSISTANT_ID = os.getenv("OPENAI_ASSISTANT_ID")
 
-# Initialize the OpenAI client and retrieve the assistant
+# Initialize OpenAI client and retrieve the assistant
 client = OpenAI(api_key=OPENAI_API_KEY)
 assistant = client.beta.assistants.retrieve(ASSISTANT_ID)
 
 # Apply custom CSS
 st.html("""
     <style>
-        #MainMenu, #header, #footer {visibility: hidden}
-        .block-container {
-            padding: 3rem 3rem 2rem 3rem;
-        }
+        #MainMenu, #header, #footer { visibility: hidden; }
+        .block-container { padding: 3rem 3rem 2rem 3rem; }
     </style>
 """)
 
 # Initialize session state
 if "file_uploaded" not in st.session_state:
-    st.session_state["file_uploaded"] = False
+    st.session_state.file_uploaded = False
 if "files" not in st.session_state:
-    st.session_state["files"] = []
+    st.session_state.files = []
 if "file_id" not in st.session_state:
-    st.session_state["file_id"] = []
+    st.session_state.file_id = []
 if "thread_id" not in st.session_state:
-    st.session_state["thread_id"] = None
+    st.session_state.thread_id = None
 if "messages" not in st.session_state:
-    st.session_state["messages"] = []
+    st.session_state.messages = []
 
 # Moderation check
 def moderation_endpoint(text: str) -> bool:
-    """Check if the text triggers the moderation endpoint."""
+    """Check if the text triggers OpenAI's moderation endpoint."""
     response = client.moderations.create(input=text)
     return response.results[0].flagged
 
 # UI
 st.subheader("🪄 DICE: Data Interpretation & Computation Engine")
 
-# File Upload
-if not st.session_state["file_uploaded"]:
-    uploaded_files = st.file_uploader("Please upload your dataset(s)", accept_multiple_files=True, type=["csv"])
+# File upload section
+if not st.session_state.file_uploaded:
+    uploaded_files = st.file_uploader(
+        "Please upload your dataset(s)", accept_multiple_files=True, type=["csv"]
+    )
     if st.button("Upload"):
         for file in uploaded_files:
-            oai_file = client.files.create(file=file, purpose='assistants')
-            st.session_state["file_id"].append(oai_file.id)
+            oai_file = client.files.create(file=file, purpose="assistants")
+            st.session_state.file_id.append(oai_file.id)
             print(f"Uploaded new file: {oai_file.id}")
 
         st.toast("File(s) uploaded successfully", icon="🚀")
-        st.session_state["file_uploaded"] = True
+        st.session_state.file_uploaded = True
         st.rerun()
 
-if st.session_state["file_uploaded"]:
-    # Create a new thread if not already created
-    if not st.session_state["thread_id"]:
+# Main chat functionality
+if st.session_state.file_uploaded:
+    # Create a new thread if one doesn't exist
+    if not st.session_state.thread_id:
         thread = client.beta.threads.create()
-        st.session_state["thread_id"] = thread.id
-        print(f"Thread ID: {st.session_state['thread_id']}")
+        st.session_state.thread_id = thread.id
+        print(f"Thread ID: {st.session_state.thread_id}")
 
-    # Update the thread to attach the file
+    # Attach files to the thread
     client.beta.threads.update(
-        thread_id=st.session_state["thread_id"],
-        tool_resources={"code_interpreter": {"file_ids": st.session_state["file_id"]}}
+        thread_id=st.session_state.thread_id,
+        tool_resources={"code_interpreter": {"file_ids": st.session_state.file_id}},
     )
 
     # Display chat history
-    for message in st.session_state["messages"]:
+    for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             for item in message["items"]:
                 if item["type"] == "text":
@@ -106,28 +109,31 @@ if st.session_state["file_uploaded"]:
             st.toast("Your message was flagged. Please try again.", icon="⚠️")
             st.stop()
 
-        st.session_state["messages"].append({"role": "user", "items": [{"type": "text", "content": prompt}]})
+        # Add user message to session state and send to OpenAI
+        st.session_state.messages.append({"role": "user", "items": [{"type": "text", "content": prompt}]})
         client.beta.threads.messages.create(
-            thread_id=st.session_state["thread_id"],
-            role="user",
-            content=prompt
+            thread_id=st.session_state.thread_id, role="user", content=prompt
         )
 
+        # Display user message
         with st.chat_message("user"):
             st.markdown(prompt)
 
+        # Display assistant response
         with st.chat_message("assistant"):
             stream = client.beta.threads.runs.create(
-                thread_id=st.session_state["thread_id"],
+                thread_id=st.session_state.thread_id,
                 assistant_id=ASSISTANT_ID,
                 tool_choice={"type": "code_interpreter"},
-                stream=True
+                stream=True,
             )
 
             assistant_output = []
 
             for event in stream:
                 print(event)
+
+                # Handle code input
                 if isinstance(event, ThreadRunStepCreated):
                     if event.data.step_details.type == "tool_calls":
                         assistant_output.append({"type": "code_input", "content": ""})
@@ -142,6 +148,7 @@ if st.session_state["file_uploaded"]:
                             assistant_output[-1]["content"] += code_input_delta
                             code_input_block.code(assistant_output[-1]["content"])
 
+                # Handle code output
                 elif isinstance(event, ThreadRunStepCompleted):
                     if isinstance(event.data.step_details, ToolCallsStepDetails):
                         code_interpretor = event.data.step_details.tool_calls[0].code_interpreter
@@ -168,6 +175,7 @@ if st.session_state["file_uploaded"]:
                         else:
                             st.warning("No results were generated by the code interpreter.")
 
+                # Handle text output
                 elif isinstance(event, ThreadMessageCreated):
                     assistant_output.append({"type": "text", "content": ""})
                     assistant_text_box = st.empty()
@@ -178,4 +186,5 @@ if st.session_state["file_uploaded"]:
                         assistant_output[-1]["content"] += event.data.delta.content[0].text.value
                         assistant_text_box.markdown(assistant_output[-1]["content"])
 
-            st.session_state["messages"].append({"role": "assistant", "items": assistant_output})
+            # Add assistant response to session state
+            st.session_state.messages.append({"role": "assistant", "items": assistant_output})
