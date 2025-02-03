@@ -1,8 +1,8 @@
-# DICE: Data Interpretation & Computation Engine
+# 🪄 DICE: Data Interpretation & Computation Engine
 
 DICE (Data Interpretation & Computation Engine) is a **Streamlit-based chat application** that integrates **OpenAI's API** to allow users to upload datasets and ask questions about their data. The application utilizes **OpenAI's Code Interpreter** to analyze and process the uploaded datasets.
 
-## 🚀 Features
+## Features
 
 - **File Upload**: Users can upload CSV files for analysis.
 - **OpenAI Assistant Integration**: Uses OpenAI's assistant to process and interpret data.
@@ -36,7 +36,7 @@ OPENAI_ASSISTANT_ID=your_openai_assistant_id
 streamlit run dice_assistant.py
 ```
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 .
@@ -47,7 +47,7 @@ streamlit run dice_assistant.py
 └── README.md           # Project documentation
 ```
 
-## 🏗️ How It Works
+## How It Works
 
 1. **Upload CSV File**: The user uploads a dataset.
 2. **File Processing**: The dataset is attached to an OpenAI assistant for analysis.
@@ -55,12 +55,8 @@ streamlit run dice_assistant.py
 4. **Code Execution**: The assistant processes queries and returns results.
 5. **Display Results**: Outputs include text, images, and code execution logs.
 
-## ⚡ Future Improvements
+## Future Improvements
 
 - Support for multiple file formats (Excel, JSON).
 - Improved UI/UX with interactive visualizations.
 - Enhanced logging and error handling.
-
-## 🤝 Contributing
-
-Contributions are welcome! Fork the repo, make changes, and submit a PR.
