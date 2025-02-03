@@ -1,6 +1,3 @@
-"""
-chat_app.py
-"""
 import base64
 import os
 from dotenv import load_dotenv
