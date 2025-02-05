@@ -11,7 +11,7 @@ DICE (Data Interpretation & Computation Engine) is a **Streamlit-based chat appl
 - **Content Moderation**: Filters flagged inputs using OpenAI's moderation endpoint.
 - **Session Management**: Maintains chat history and uploaded files within the session.
 
-## 🛠️ Installation
+## Installation
 
 ### 1. Clone the Repository
 ```sh
@@ -40,7 +40,7 @@ streamlit run dice_assistant.py
 
 ```
 .
-├── dice_assistant.py         # Main Streamlit application
+├── dice_assistant.py   # Main Streamlit application
 ├── requirements.txt    # Required dependencies
 ├── .env                # API keys (not included in Git)
 ├── images/             # Folder for storing generated images

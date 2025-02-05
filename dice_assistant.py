@@ -1,21 +1,19 @@
 import base64
 import os
-from dotenv import load_dotenv
+
 import streamlit as st
+from dotenv import load_dotenv
 from openai import OpenAI
-from openai.types.beta.assistant_stream_event import (
-    ThreadRunStepCreated,
-    ThreadRunStepDelta,
-    ThreadRunStepCompleted,
-    ThreadMessageCreated,
-    ThreadMessageDelta,
-)
-from openai.types.beta.threads.text_delta_block import TextDeltaBlock
-from openai.types.beta.threads.runs.tool_calls_step_details import ToolCallsStepDetails
+from openai.types.beta.assistant_stream_event import (ThreadMessageCreated,
+                                                      ThreadMessageDelta,
+                                                      ThreadRunStepCompleted,
+                                                      ThreadRunStepCreated,
+                                                      ThreadRunStepDelta)
 from openai.types.beta.threads.runs.code_interpreter_tool_call import (
-    CodeInterpreterOutputImage,
-    CodeInterpreterOutputLogs,
-)
+    CodeInterpreterOutputImage, CodeInterpreterOutputLogs)
+from openai.types.beta.threads.runs.tool_calls_step_details import \
+    ToolCallsStepDetails
+from openai.types.beta.threads.text_delta_block import TextDeltaBlock
 
 # Set page config
 st.set_page_config(page_title="DICE", layout="wide")
@@ -51,7 +49,13 @@ if "messages" not in st.session_state:
 
 # Moderation check
 def moderation_endpoint(text: str) -> bool:
-    """Check if the text triggers OpenAI's moderation endpoint."""
+    """
+    Check if the text triggers OpenAI's moderation endpoint.
+    
+    :param text: The text to check for moderation.
+
+    :return: A boolean indicating if the text was flagged.
+    """
     response = client.moderations.create(input=text)
     return response.results[0].flagged
 
